@@ -36,7 +36,8 @@ public:
 	CHIP_ERROR StartApp();
 
 	void UpdateClusterState();
-	PWMDevice &GetPWMDevice() { return mPWMDevice; }
+	PWMDevice &GetPWMDevice() { return mPWMDevice[0]; }
+	PWMDevice &GetPWMDevice(int chl) { return mPWMDevice[chl]; }
 
 	static void IdentifyStartHandler(Identify *);
 	static void IdentifyStopHandler(Identify *);
@@ -69,7 +70,8 @@ private:
 
 	FunctionEvent mFunction = FunctionEvent::NoneSelected;
 	bool mFunctionTimerActive = false;
-	PWMDevice mPWMDevice;
+	PWMDevice mPWMDevice[3];
+
 #if CONFIG_CHIP_FACTORY_DATA
 	chip::DeviceLayer::FactoryDataProvider<chip::DeviceLayer::InternalFlashFactoryData> mFactoryDataProvider;
 #endif

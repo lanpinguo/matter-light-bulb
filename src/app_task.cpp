@@ -75,7 +75,11 @@ bool sIsNetworkEnabled = false;
 bool sHaveBLEConnections = false;
 bool sIsTriggerEffectActive = false;
 
-const struct pwm_dt_spec sLightPwmDevice = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led1));
+const struct pwm_dt_spec sLightPwmDevice[3] = {
+    [0] = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led0)),
+    [1] = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led1)),
+    [2] = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led2)),
+};
 
 // Define a custom attribute persister which makes actual write of the CurrentLevel attribute value
 // to the non-volatile storage only when it has remained constant for 5 seconds. This is to reduce
@@ -184,11 +188,13 @@ CHIP_ERROR AppTask::Init()
 	uint8_t maxLightLevel = kDefaultMaxLevel;
 	Clusters::LevelControl::Attributes::MaxLevel::Get(kLightEndpointId, &maxLightLevel);
 
-	ret = mPWMDevice.Init(&sLightPwmDevice, minLightLevel, maxLightLevel, maxLightLevel);
-	if (ret != 0) {
-		return chip::System::MapErrorZephyr(ret);
-	}
-	mPWMDevice.SetCallbacks(ActionInitiated, ActionCompleted);
+    for(int i = 0; i < 3; i++){
+        ret = mPWMDevice[i].Init(&sLightPwmDevice[i], minLightLevel, maxLightLevel, maxLightLevel);
+        if (ret != 0) {
+            return chip::System::MapErrorZephyr(ret);
+        }
+        mPWMDevice[i].SetCallbacks(ActionInitiated, ActionCompleted);
+    }
 
 #ifdef CONFIG_CHIP_OTA_REQUESTOR
 	/* OTA image confirmation must be done before the factory data init. */
@@ -255,7 +261,7 @@ void AppTask::IdentifyStartHandler(Identify *)
 	AppEvent event;
 	event.Type = AppEventType::IdentifyStart;
 	event.Handler = [](const AppEvent &) {
-		Instance().mPWMDevice.SuppressOutput();
+		Instance().mPWMDevice[0].SuppressOutput();
 		sIdentifyLED.Blink(LedConsts::kIdentifyBlinkRate_ms);
 	};
 	PostEvent(event);
@@ -267,7 +273,7 @@ void AppTask::IdentifyStopHandler(Identify *)
 	event.Type = AppEventType::IdentifyStop;
 	event.Handler = [](const AppEvent &) {
 		sIdentifyLED.Set(false);
-		Instance().mPWMDevice.ApplyLevel();
+		Instance().mPWMDevice[0].ApplyLevel();
 	};
 	PostEvent(event);
 }
@@ -279,7 +285,7 @@ void AppTask::TriggerEffectTimerTimeoutCallback(k_timer *timer)
 	sIsTriggerEffectActive = false;
 
 	sIdentifyLED.Set(false);
-	Instance().mPWMDevice.ApplyLevel();
+	Instance().mPWMDevice[0].ApplyLevel();
 }
 
 void AppTask::TriggerIdentifyEffectHandler(Identify *identify)
@@ -297,7 +303,7 @@ void AppTask::TriggerIdentifyEffectHandler(Identify *identify)
 		k_timer_stop(&sTriggerEffectTimer);
 		k_timer_start(&sTriggerEffectTimer, K_MSEC(kTriggerEffectTimeout), K_NO_WAIT);
 
-		Instance().mPWMDevice.SuppressOutput();
+		Instance().mPWMDevice[0].SuppressOutput();
 		sIdentifyLED.Blink(LedConsts::kIdentifyBlinkRate_ms);
 
 		break;
@@ -313,7 +319,7 @@ void AppTask::TriggerIdentifyEffectHandler(Identify *identify)
 			k_timer_stop(&sTriggerEffectTimer);
 
 			sIdentifyLED.Set(false);
-			Instance().mPWMDevice.ApplyLevel();
+			Instance().mPWMDevice[0].ApplyLevel();
 		}
 		break;
 	default:
@@ -353,11 +359,11 @@ void AppTask::LightingActionEventHandler(const AppEvent &event)
 		action = static_cast<PWMDevice::Action_t>(event.LightingEvent.Action);
 		actor = event.LightingEvent.Actor;
 	} else if (event.Type == AppEventType::Button) {
-		action = Instance().mPWMDevice.IsTurnedOn() ? PWMDevice::OFF_ACTION : PWMDevice::ON_ACTION;
+		action = Instance().mPWMDevice[0].IsTurnedOn() ? PWMDevice::OFF_ACTION : PWMDevice::ON_ACTION;
 		actor = static_cast<int32_t>(AppEventType::Button);
 	}
 
-	if (action != PWMDevice::INVALID_ACTION && Instance().mPWMDevice.InitiateAction(action, actor, NULL)) {
+	if (action != PWMDevice::INVALID_ACTION && Instance().mPWMDevice[0].InitiateAction(action, actor, NULL)) {
 		LOG_INF("Action is already in progress or active.");
 	}
 }
@@ -651,14 +657,14 @@ void AppTask::UpdateClusterState()
 	SystemLayer().ScheduleLambda([this] {
 		/* write the new on/off value */
 		EmberAfStatus status =
-			Clusters::OnOff::Attributes::OnOff::Set(kLightEndpointId, mPWMDevice.IsTurnedOn());
+			Clusters::OnOff::Attributes::OnOff::Set(kLightEndpointId, mPWMDevice[0].IsTurnedOn());
 
 		if (status != EMBER_ZCL_STATUS_SUCCESS) {
 			LOG_ERR("Updating on/off cluster failed: %x", status);
 		}
 
 		/* write the current level */
-		status = Clusters::LevelControl::Attributes::CurrentLevel::Set(kLightEndpointId, mPWMDevice.GetLevel());
+		status = Clusters::LevelControl::Attributes::CurrentLevel::Set(kLightEndpointId, mPWMDevice[0].GetLevel());
 
 		if (status != EMBER_ZCL_STATUS_SUCCESS) {
 			LOG_ERR("Updating level cluster failed: %x", status);
