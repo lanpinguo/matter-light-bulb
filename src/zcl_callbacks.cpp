@@ -22,23 +22,20 @@ void MatterPostAttributeChangeCallback(const chip::app::ConcreteAttributePath &a
 {
 	ClusterId clusterId = attributePath.mClusterId;
 	AttributeId attributeId = attributePath.mAttributeId;
+	EndpointId aEndpointId = attributePath.mEndpointId;
 
 	if (clusterId == OnOff::Id && attributeId == OnOff::Attributes::OnOff::Id) {
 		ChipLogProgress(Zcl, "Cluster OnOff: attribute OnOff set to %" PRIu8 "", *value);
-        for(int i = 0; i < 3; i++){
-            AppTask::Instance().GetPWMDevice(i).InitiateAction(*value ? PWMDevice::ON_ACTION : PWMDevice::OFF_ACTION,
+		AppTask::Instance().GetPWMDevice().InitiateAction(*value ? PWMDevice::ON_ACTION : PWMDevice::OFF_ACTION,
 								  static_cast<int32_t>(AppEventType::Lighting), value);
-        }
+
+        AppTask::Instance().GetRelayDevice().Set(
+                (static_cast<int32_t>(aEndpointId) - 1) / 4, (static_cast<int32_t>(aEndpointId) - 1) % 4, 
+                *value ? IO_Relay::ON_ACTION : IO_Relay::OFF_ACTION);
+
 	} else if (clusterId == LevelControl::Id && attributeId == LevelControl::Attributes::CurrentLevel::Id) {
 		ChipLogProgress(Zcl, "Cluster LevelControl: attribute CurrentLevel set to %" PRIu8 "", *value);
-        for(int i = 0; i < 3; i++){
-            if (AppTask::Instance().GetPWMDevice(i).IsTurnedOn()) {
-                AppTask::Instance().GetPWMDevice(i).InitiateAction(
-                    PWMDevice::LEVEL_ACTION, static_cast<int32_t>(AppEventType::Lighting), value);
-            } else {
-                ChipLogDetail(Zcl, "LED is off. Try to use move-to-level-with-on-off instead of move-to-level");
-            }
-        }
+
 	}
 }
 

@@ -77,8 +77,6 @@ bool sIsTriggerEffectActive = false;
 
 const struct pwm_dt_spec sLightPwmDevice[3] = {
     [0] = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led0)),
-    [1] = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led1)),
-    [2] = PWM_DT_SPEC_GET(DT_ALIAS(pwm_led2)),
 };
 
 // Define a custom attribute persister which makes actual write of the CurrentLevel attribute value
@@ -188,7 +186,7 @@ CHIP_ERROR AppTask::Init()
 	uint8_t maxLightLevel = kDefaultMaxLevel;
 	Clusters::LevelControl::Attributes::MaxLevel::Get(kLightEndpointId, &maxLightLevel);
 
-    for(int i = 0; i < 3; i++){
+    for(int i = 0; i < 1; i++){
         ret = mPWMDevice[i].Init(&sLightPwmDevice[i], minLightLevel, maxLightLevel, maxLightLevel);
         if (ret != 0) {
             return chip::System::MapErrorZephyr(ret);
@@ -537,14 +535,14 @@ void AppTask::UpdateStatusLED()
 {
 	/* Update the status LED.
 	 *
-	 * If IPv6 network and service provisioned, keep the LED On constantly.
+	 * If IPv6 network and service provisioned, keep the LED Off constantly.
 	 *
 	 * If the system has ble connection(s) uptill the stage above, THEN blink the LED at an even
 	 * rate of 100ms.
 	 *
 	 * Otherwise, blink the LED for a very short time. */
 	if (sIsNetworkProvisioned && sIsNetworkEnabled) {
-		sStatusLED.Set(true);
+		sStatusLED.Set(false);
 	} else if (sHaveBLEConnections) {
 		sStatusLED.Blink(LedConsts::StatusLed::Unprovisioned::kOn_ms,
 				 LedConsts::StatusLed::Unprovisioned::kOff_ms);

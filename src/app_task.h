@@ -9,6 +9,7 @@
 #include "app_event.h"
 #include "led_widget.h"
 #include "pwm_device.h"
+#include "io_relay.h"
 
 #include <platform/CHIPDeviceLayer.h>
 
@@ -38,6 +39,7 @@ public:
 	void UpdateClusterState();
 	PWMDevice &GetPWMDevice() { return mPWMDevice[0]; }
 	PWMDevice &GetPWMDevice(int chl) { return mPWMDevice[chl]; }
+	IO_Relay &GetRelayDevice() { return mIO_RelayDevice; }
 
 	static void IdentifyStartHandler(Identify *);
 	static void IdentifyStopHandler(Identify *);
@@ -71,6 +73,7 @@ private:
 	FunctionEvent mFunction = FunctionEvent::NoneSelected;
 	bool mFunctionTimerActive = false;
 	PWMDevice mPWMDevice[3];
+	IO_Relay mIO_RelayDevice;
 
 #if CONFIG_CHIP_FACTORY_DATA
 	chip::DeviceLayer::FactoryDataProvider<chip::DeviceLayer::InternalFlashFactoryData> mFactoryDataProvider;
