@@ -19,9 +19,16 @@
 #include <platform/nrfconnect/DeviceInstanceInfoProviderImpl.h>
 #endif
 
+
+#include <platform/DiagnosticDataProvider.h>
+#include <platform/nrfconnect/DiagnosticDataProviderImplNrf.h>
+#include <platform/Zephyr/DiagnosticDataProviderImpl.h>
+
 #ifdef CONFIG_MCUMGR_TRANSPORT_BT
 #include "dfu_over_smp.h"
 #endif
+
+using BootReasonType = chip::DeviceLayer::BootReasonType;
 
 struct k_timer;
 struct Identify;
@@ -40,6 +47,8 @@ public:
 	PWMDevice &GetPWMDevice() { return mPWMDevice[0]; }
 	PWMDevice &GetPWMDevice(int chl) { return mPWMDevice[chl]; }
 	IO_Relay &GetRelayDevice() { return mIO_RelayDevice; }
+    BootReasonType ResetReasonGet(void);
+
 
 	static void IdentifyStartHandler(Identify *);
 	static void IdentifyStopHandler(Identify *);
@@ -52,6 +61,7 @@ private:
 	void CancelTimer();
 	void StartTimer(uint32_t timeoutInMs);
 
+    
 	static void PostEvent(const AppEvent &event);
 	static void DispatchEvent(const AppEvent &event);
 	static void FunctionTimerEventHandler(const AppEvent &event);

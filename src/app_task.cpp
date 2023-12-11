@@ -237,6 +237,9 @@ CHIP_ERROR AppTask::Init()
 		return err;
 	}
 
+
+   LOG_INF("system reset reason: %" PRIu8 "", static_cast<uint8_t> (AppTask::Instance().ResetReasonGet()));
+
 	return CHIP_NO_ERROR;
 }
 
@@ -668,4 +671,17 @@ void AppTask::UpdateClusterState()
 			LOG_ERR("Updating level cluster failed: %x", status);
 		}
 	});
+}
+
+
+
+BootReasonType AppTask::ResetReasonGet(void)
+{
+    BootReasonType bootReason;
+
+    DiagnosticDataProviderImplNrf::GetDefaultInstance().GetBootReason(bootReason);
+
+    // CHIP_ERROR err = ConfigurationMgr().GetBootReason( bootReason);
+
+    return bootReason; 
 }
