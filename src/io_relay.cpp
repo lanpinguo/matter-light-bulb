@@ -26,7 +26,6 @@ LOG_MODULE_REGISTER(io_ctrl);
 
 int IO_Relay::Set(int slot, int chl, Action_t aAction)
 {
-	int ret;
 
 
 	if(aAction == ON_ACTION){
